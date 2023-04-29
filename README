@@ -1,0 +1,42 @@
+# Portfolio Project Readme
+
+This project demonstrates the use of the CERES library to solve various optimization problems. Currently, the project includes two solved problems: finding the equation of a 2D line and finding the axis, center, and radius of a cylinder given some data points.
+
+## Prerequisites
+
+Before running this project, you must have the following installed on your system:
+
+- CMake (version 3.0 or higher)
+- C++ compiler (GCC, Clang, or MSVC)
+- CERES Solver (version 2.0 or higher)
+
+## Getting Started
+
+To get started with the project, follow these steps:
+
+1. Clone this repository to your local machine using `git clone`.
+2. Navigate to the project directory.
+3. Create a `build` folder inside the project directory.
+4. Enter the `build` folder with `cd build`.
+5. Run `cmake ..` to generate the build files.
+6. Run `make` to build the project.
+7. Run the executable file generated in the `build` directory.
+
+## Usage
+
+### Finding the Equation of a 2D Line
+
+To find the equation of a 2D line, run the executable file and provide the data points as input. The program will optimize the parameters of the line equation to fit the given data points.
+
+### Finding the Axis, Center, and Radius of a Cylinder
+
+To find the axis, center, and radius of a cylinder, run the executable file and provide the data points as input. The program will optimize the parameters of the cylinder equation to fit the given data points.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+## Acknowledgments
+
+- CERES Solver (http://ceres-solver.org/)
+- Open Source community.
