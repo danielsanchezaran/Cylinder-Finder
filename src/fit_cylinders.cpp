@@ -1,4 +1,4 @@
-#include <ceres/ceres.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include <iostream>
 
@@ -15,50 +15,34 @@ int main() {
   generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
                                           height, cylinder_cloud);
 
-  auto cylinder_centroid = computeCentroid<pcl::PointXYZ>(cylinder_cloud);
-  Eigen::Vector3f centroid3f;
-  centroid3f << cylinder_centroid(0), cylinder_centroid(1),
-      cylinder_centroid(2);
-  std::cout << "Centroid " << cylinder_centroid.transpose() << "\n";
+  auto x = find_cylinder<pcl::PointXYZ>(cylinder_cloud);
 
-  pcl::PCA<pcl::PointXYZ> pca;
-  pca.setInputCloud(cylinder_cloud);
-  std::cout << "PCA: " << pca.getEigenVectors() << "\n";
-  Eigen::Vector3f main_axis = pca.getEigenVectors().col(2);
+  std::cout << "Output " << x.transpose() << "\n";
 
-  auto projection =
-      project_points_perpendicular_to_axis(*cylinder_cloud, main_axis);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr projection_cloud_ptr =
-      projection.makeShared();
-  auto radius_approx = compute_cylinder_radius<pcl::PointXYZ>(
-      projection_cloud_ptr, main_axis, centroid3f);
-  std::cout << "Radius " << radius_approx << "\n";
-  ceres::Problem problem;
-  Eigen::VectorXd x(7);
+  pcl::visualization::PCLVisualizer::Ptr viewer(
+      new pcl::visualization::PCLVisualizer("3D Viewer"));
+  viewer->addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
 
-  // x << axis,center,radius;
-  x << main_axis.cast<double>(), centroid3f.cast<double>(), radius_approx;
+  // Extract the cylinder parameters from the x vector
+  Eigen::Vector3d axis_ = x.segment<3>(0);
+  Eigen::Vector3d center_ = x.segment<3>(3);
+  double radius_ = x(6);
 
-  std::vector<Eigen::Vector3d> data_points =
-      getEigenCloud<pcl::PointXYZ>(cylinder_cloud);
+  pcl::ModelCoefficients::Ptr cylinder_coefficients(new pcl::ModelCoefficients);
+  cylinder_coefficients->values.resize(7);
+  cylinder_coefficients->values[0] = static_cast<float>(center_.x());
+  cylinder_coefficients->values[1] = static_cast<float>(center_.y());
+  cylinder_coefficients->values[2] = static_cast<float>(center_.z());
+  cylinder_coefficients->values[3] = static_cast<float>(axis_.x());
+  cylinder_coefficients->values[4] = static_cast<float>(axis_.y());
+  cylinder_coefficients->values[5] = static_cast<float>(axis_.z());
+  cylinder_coefficients->values[6] = static_cast<float>(radius_);
 
-  std::cout << "Initial guess " << x.transpose() << "\n";
-  // Add the cost function for each data point
-  for (int i = 0; i < data_points.size(); ++i) {
-    ceres::CostFunction* cost_function =
-        new ceres::AutoDiffCostFunction<CylinderCostFunctor, 1, 7>(
-            new CylinderCostFunctor(data_points, i));
-    problem.AddResidualBlock(cost_function, nullptr, x.data());
-  }
+  viewer->addCylinder(*cylinder_coefficients, "cylinder");
 
-  // Set up the solver options
-  ceres::Solver::Options options;
-  options.minimizer_progress_to_stdout = true;
+  // Visualize the results
+  viewer->spin();
 
-  // Solve the problem
-  ceres::Solver::Summary summary;
-  ceres::Solve(options, &problem, &summary);
-
-  std::cout << "Solution: " << x.transpose() << "\n";
+  std::cout << x.transpose() << std::endl;
   return 0;
 }

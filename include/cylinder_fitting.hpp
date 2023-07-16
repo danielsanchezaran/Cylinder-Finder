@@ -1,6 +1,7 @@
 #ifndef CYLINDER_FITTING_H
 #define CYLINDER_FITTING_H
 
+#include <ceres/ceres.h>
 #include <pcl-1.10/pcl/common/centroid.h>
 #include <pcl/common/pca.h>
 #include <pcl/features/feature.h>
@@ -128,4 +129,49 @@ void generate_cylinder_points(
     cylinder_cloud->points[i] = pcl_point;
   }
 }
+
+template <typename PointT>
+const Eigen::VectorXd find_cylinder(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+  auto cylinder_centroid = computeCentroid<PointT>(cylinder_cloud);
+  Eigen::Vector3f centroid3f;
+  centroid3f << cylinder_centroid(0), cylinder_centroid(1),
+      cylinder_centroid(2);
+
+  pcl::PCA<PointT> pca;
+  pca.setInputCloud(cylinder_cloud);
+  Eigen::Vector3f main_axis = pca.getEigenVectors().col(2);
+
+  auto projection =
+      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
+  typename pcl::PointCloud<PointT>::Ptr projection_cloud_ptr =
+      projection.makeShared();
+  auto radius_approx = compute_cylinder_radius<PointT>(projection_cloud_ptr,
+                                                       main_axis, centroid3f);
+  ceres::Problem problem;
+  Eigen::VectorXd x(7);
+
+  x << main_axis.cast<double>(), centroid3f.cast<double>(), radius_approx;
+
+  std::vector<Eigen::Vector3d> data_points =
+      getEigenCloud<PointT>(cylinder_cloud);
+
+  // Add the cost function for each data point
+  for (int i = 0; i < data_points.size(); ++i) {
+    ceres::CostFunction* cost_function =
+        new ceres::AutoDiffCostFunction<CylinderCostFunctor, 1, 7>(
+            new CylinderCostFunctor(data_points, i));
+    problem.AddResidualBlock(cost_function, nullptr, x.data());
+  }
+
+  // Set up the solver options
+  ceres::Solver::Options options;
+  options.minimizer_progress_to_stdout = false;
+
+  // Solve the problem
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+
+  return x;
+}
+
 #endif  // CYLINDER_FITTING_H
