@@ -34,16 +34,43 @@ void adjust_cylinder_model_to_points(
   }
   Eigen::Vector3d new_center_ = center_ + axis_ * min_projection;
   Eigen::Vector3d new_axis_ = axis_ * (max_projection - min_projection);
-  cylinder_coefficients.segment<3>(0) = new_axis_; 
-  cylinder_coefficients.segment<3>(3) = new_center_; 
+  cylinder_coefficients.segment<3>(0) = new_axis_;
+  cylinder_coefficients.segment<3>(3) = new_center_;
+}
+
+template <typename PointT>
+typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    Eigen::VectorXd& cylinder_coefficients, double radius_percentage = 0.05) {
+  // Extract the cylinder parameters from the x vector
+  Eigen::Vector3d axis_ = cylinder_coefficients.segment<3>(0);
+  axis_.normalize();
+  Eigen::Vector3d center_ = cylinder_coefficients.segment<3>(3);
+  double radius = cylinder_coefficients(6);
+
+  typename pcl::PointCloud<PointT>::Ptr filtered_cylinder_cloud(
+      new pcl::PointCloud<PointT>);
+
+  filtered_cylinder_cloud->points.resize(cylinder_cloud->points.size());
+  int point_count = 0;
+  for (auto point : cylinder_cloud->points) {
+    Eigen::Vector3d point_{point.x, point.y, point.z};
+    double projection = projection_of_point_in_axis(axis_, center_, point_);
+    double distance_to_axis = (point_ - (center_ + projection * axis_)).norm();
+
+    if (std::abs(distance_to_axis - radius) < radius * radius_percentage)
+      filtered_cylinder_cloud->points[point_count++] = point;
+  }
+  filtered_cylinder_cloud->resize(point_count);
+  return filtered_cylinder_cloud;
 }
 
 int main() {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cylinder_cloud(
       new pcl::PointCloud<pcl::PointXYZ>);
-  Eigen::Vector3d axis(1, 1, 0);
+  Eigen::Vector3d axis(1, 0, 0);
   axis.normalize();
-  Eigen::Vector3d center(3, -1, 1);
+  Eigen::Vector3d center(0, 0, 0);
   double radius = 2;
   double height = 2;
   int n_points = 1000;
@@ -53,9 +80,11 @@ int main() {
   auto x = find_cylinder<pcl::PointXYZ>(cylinder_cloud);
   std::cout << "Output " << x.transpose() << "\n";
   // TODO: Filter inliers before modifying
-  adjust_cylinder_model_to_points<pcl::PointXYZ>(cylinder_cloud,x);
+  cylinder_cloud =
+      filter_cylinder_inliers<pcl::PointXYZ>(cylinder_cloud, x, 0.05);
+  adjust_cylinder_model_to_points<pcl::PointXYZ>(cylinder_cloud, x);
 
-  std::cout << "Output " << x.transpose() << "\n";
+  std::cout << "Output after adjust" << x.transpose() << "\n";
 
   // Create the PCLVisualizer
   pcl::visualization::PCLVisualizer viewer("3D Viewer");
