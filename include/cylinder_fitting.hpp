@@ -113,7 +113,7 @@ void generate_cylinder_points(
     double y_noise =
         (static_cast<double>(rand()) / RAND_MAX - 0.5) * 0.1 * radius;
     double z_noise =
-        (static_cast<double>(rand()) / RAND_MAX - 0.5) * 2.0 * height;
+        (static_cast<double>(rand()) / RAND_MAX - 0.5) * 1.0 * height;
 
     Eigen::Vector3d relative_position;
     relative_position << std::cos(theta) * (radius + x_noise) * u +
