@@ -18,5 +18,6 @@ add_executable(line_app src/line_problem.cpp)
 add_executable(cylinder_app src/fit_cylinders.cpp)
 
 # Link the targets with Ceres and PCL libraries
-target_link_libraries(line_app Ceres::ceres)
-target_link_libraries(cylinder_app Ceres::ceres ${PCL_LIBRARIES})
+target_link_libraries(line_app ${CERES_LIBRARIES})
+target_link_libraries(cylinder_app ${CERES_LIBRARIES} ${PCL_LIBRARIES})
+
