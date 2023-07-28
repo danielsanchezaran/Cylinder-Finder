@@ -174,4 +174,65 @@ const Eigen::VectorXd find_cylinder(typename pcl::PointCloud<PointT>::Ptr& cylin
   return x;
 }
 
+double projection_of_point_in_axis(const Eigen::Vector3d& direction,
+                                   const Eigen::Vector3d& line_point,
+                                   const Eigen::Vector3d& point) {
+  auto line_point_to_point = point - line_point;
+  return line_point_to_point.dot(direction);
+}
+
+template <typename PointT>
+void adjust_cylinder_model_to_points(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    Eigen::VectorXd& cylinder_coefficients) {
+  // Extract the cylinder parameters from the x vector
+  Eigen::Vector3d axis_ = cylinder_coefficients.segment<3>(0);
+  Eigen::Vector3d center_ = cylinder_coefficients.segment<3>(3);
+
+  axis_.normalize();
+  double max_projection = std::numeric_limits<double>::lowest();
+  double min_projection = std::numeric_limits<double>::max();
+  int c = 0;
+  for (auto point : cylinder_cloud->points) {
+    Eigen::Vector3d point_{point.x, point.y, point.z};
+    double projection = projection_of_point_in_axis(axis_, center_, point_);
+    max_projection =
+        (projection > max_projection) ? projection : max_projection;
+    min_projection =
+        (projection < min_projection) ? projection : min_projection;
+  }
+  Eigen::Vector3d new_center_ = center_ + axis_ * min_projection;
+  Eigen::Vector3d new_axis_ = axis_ * (max_projection - min_projection);
+  cylinder_coefficients.segment<3>(0) = new_axis_;
+  cylinder_coefficients.segment<3>(3) = new_center_;
+}
+
+template <typename PointT>
+typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    Eigen::VectorXd& cylinder_coefficients, double radius_percentage = 0.05) {
+  // Extract the cylinder parameters from the x vector
+  Eigen::Vector3d axis_ = cylinder_coefficients.segment<3>(0);
+  axis_.normalize();
+  Eigen::Vector3d center_ = cylinder_coefficients.segment<3>(3);
+  double radius = cylinder_coefficients(6);
+
+  typename pcl::PointCloud<PointT>::Ptr filtered_cylinder_cloud(
+      new pcl::PointCloud<PointT>);
+
+  filtered_cylinder_cloud->points.resize(cylinder_cloud->points.size());
+  int point_count = 0;
+  for (auto point : cylinder_cloud->points) {
+    Eigen::Vector3d point_{point.x, point.y, point.z};
+    double projection = projection_of_point_in_axis(axis_, center_, point_);
+    double distance_to_axis = (point_ - (center_ + projection * axis_)).norm();
+
+    if (std::abs(distance_to_axis - radius) < radius * radius_percentage)
+      filtered_cylinder_cloud->points[point_count++] = point;
+  }
+  filtered_cylinder_cloud->resize(point_count);
+  return filtered_cylinder_cloud;
+}
+
+
 #endif  // CYLINDER_FITTING_H
