@@ -131,7 +131,7 @@ void generate_cylinder_points(
 }
 
 template <typename PointT>
-const Eigen::VectorXd find_cylinder(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+const Eigen::VectorXd find_cylinder_model(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
   auto cylinder_centroid = computeCentroid<PointT>(cylinder_cloud);
   Eigen::Vector3f centroid3f;
   centroid3f << cylinder_centroid(0), cylinder_centroid(1),

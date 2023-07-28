@@ -30,7 +30,7 @@ int main() {
   generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
                                           height, cylinder_cloud);
 
-  auto x = find_cylinder<pcl::PointXYZ>(cylinder_cloud);
+  auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
   std::cout << "Output " << x.transpose() << "\n";
   // TODO: Filter inliers before modifying
   cylinder_cloud =
