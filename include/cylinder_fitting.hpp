@@ -105,9 +105,9 @@ inline std::vector<Eigen::Vector3d> getEigenCloud(
  * @return The computed cylinder radius.
  */
 template <typename PointT>
-inline double compute_cylinder_radius(typename pcl::PointCloud<PointT>::Ptr cloud,
-                               const Eigen::Vector3f& axis,
-                               const Eigen::Vector3f& origin) {
+inline double compute_cylinder_radius(
+    typename pcl::PointCloud<PointT>::Ptr cloud, const Eigen::Vector3f& axis,
+    const Eigen::Vector3f& origin) {
   double variance = 0.0;
   double mean_distance = 0.0;
 
@@ -175,10 +175,14 @@ inline void generate_cylinder_points(
 }
 
 /**
- * Estimates the parameters of a cylinder-like structure from a given point cloud.
-   @param cylinder_cloud A shared pointer to the input point cloud containing the points of the cylinder.
-   @param main_axis A 3D vector representing the estimated main axis of the cylinder.
-   @param centroid3f A 3D vector representing the estimated centroid of the cylinder.
+ * Estimates the parameters of a cylinder-like structure from a given point
+ cloud.
+   @param cylinder_cloud A shared pointer to the input point cloud containing
+ the points of the cylinder.
+   @param main_axis A 3D vector representing the estimated main axis of the
+ cylinder.
+   @param centroid3f A 3D vector representing the estimated centroid of the
+ cylinder.
    @param radius_approx The estimated radius of the cylinder.
 */
 template <typename PointT>
@@ -193,8 +197,10 @@ inline void estimate_cylinder_parameters(
   pcl::PCA<PointT> pca;
   pca.setInputCloud(cylinder_cloud);
   main_axis = pca.getEigenVectors().col(2);
-  radius_approx = compute_cylinder_radius<PointT>(cylinder_cloud,
-                                                  main_axis, centroid3f);
+  radius_approx =
+      compute_cylinder_radius<PointT>(cylinder_cloud, main_axis, centroid3f);
+  auto projected_points =
+      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
 }
 
 /**
@@ -211,7 +217,7 @@ inline const Eigen::VectorXd find_cylinder_model(
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
   estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
-                               radius_approx);
+                                       radius_approx);
   ceres::Problem problem;
   Eigen::VectorXd x(7);
 
@@ -239,16 +245,14 @@ inline const Eigen::VectorXd find_cylinder_model(
   return x;
 }
 
-
 template <typename PointT>
-inline const Eigen::VectorXd find_cylinder_projection_ransac(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+inline const Eigen::VectorXd find_cylinder_projection_ransac(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
   estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
-                               radius_approx);
-
-
+                                       radius_approx);
 }
 
 /**
@@ -260,8 +264,8 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(typename pcl::Point
  * @return The projection of the point onto the axis.
  */
 inline double projection_of_point_in_axis(const Eigen::Vector3d& direction,
-                                   const Eigen::Vector3d& line_point,
-                                   const Eigen::Vector3d& point) {
+                                          const Eigen::Vector3d& line_point,
+                                          const Eigen::Vector3d& point) {
   auto line_point_to_point = point - line_point;
   return line_point_to_point.dot(direction);
 }
