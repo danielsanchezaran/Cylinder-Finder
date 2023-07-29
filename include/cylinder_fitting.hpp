@@ -14,7 +14,8 @@
 
 /**
  * CylinderCostFunctor: A functor used as a cost function in Ceres optimization
- * to compute the residual distance between a data point and a cylinder's surface.
+ * to compute the residual distance between a data point and a cylinder's
+ * surface.
  * @param data_points A vector of Eigen 3D vectors representing the data points.
  * @param i Index of the data point in the vector.
  */
@@ -173,29 +174,48 @@ void generate_cylinder_points(
 }
 
 /**
- * find_cylinder_model: Finds the parameters (axis, centroid, and radius) of a
- * cylinder model in a given point cloud using Ceres optimization.
- * @param cylinder_cloud The input point cloud containing the cylinder points.
- * @return A 7D vector containing the cylinder parameters: main_axis (3D vector),
- * centroid (3D vector), and radius (scalar).
- */
+ * Estimates the parameters of a cylinder-like structure from a given point cloud.
+   @param cylinder_cloud A shared pointer to the input point cloud containing the points of the cylinder.
+   @param main_axis A 3D vector representing the estimated main axis of the cylinder.
+   @param centroid3f A 3D vector representing the estimated centroid of the cylinder.
+   @param radius_approx The estimated radius of the cylinder.
+*/
 template <typename PointT>
-const Eigen::VectorXd find_cylinder_model(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+void estimate_cylinder_parameters(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    Eigen::Vector3f& main_axis, Eigen::Vector3f& centroid3f,
+    double& radius_approx) {
   auto cylinder_centroid = computeCentroid<PointT>(cylinder_cloud);
-  Eigen::Vector3f centroid3f;
   centroid3f << cylinder_centroid(0), cylinder_centroid(1),
       cylinder_centroid(2);
 
   pcl::PCA<PointT> pca;
   pca.setInputCloud(cylinder_cloud);
-  Eigen::Vector3f main_axis = pca.getEigenVectors().col(2);
+  main_axis = pca.getEigenVectors().col(2);
 
   auto projection =
       project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
   typename pcl::PointCloud<PointT>::Ptr projection_cloud_ptr =
       projection.makeShared();
-  auto radius_approx = compute_cylinder_radius<PointT>(projection_cloud_ptr,
-                                                       main_axis, centroid3f);
+  radius_approx = compute_cylinder_radius<PointT>(projection_cloud_ptr,
+                                                  main_axis, centroid3f);
+}
+
+/**
+ * find_cylinder_model: Finds the parameters (axis, centroid, and radius) of a
+ * cylinder model in a given point cloud using Ceres optimization.
+ * @param cylinder_cloud The input point cloud containing the cylinder points.
+ * @return A 7D vector containing the cylinder parameters: main_axis (3D
+ * vector), centroid (3D vector), and radius (scalar).
+ */
+template <typename PointT>
+const Eigen::VectorXd find_cylinder_model(
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+  double radius_approx;
+  Eigen::Vector3f centroid3f;
+  Eigen::Vector3f main_axis;
+  estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
+                               radius_approx);
   ceres::Problem problem;
   Eigen::VectorXd x(7);
 
@@ -277,7 +297,8 @@ void adjust_cylinder_model_to_points(
  * @param cylinder_cloud The input point cloud containing the cylinder points.
  * @param cylinder_coefficients The cylinder parameters: main_axis (3D vector),
  * centroid (3D vector), and radius (scalar).
- * @param radius_percentage The percentage of radius used as the filtering threshold.
+ * @param radius_percentage The percentage of radius used as the filtering
+ * threshold.
  * @return A new point cloud containing the filtered inlier points.
  */
 template <typename PointT>
@@ -306,6 +327,5 @@ typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
   filtered_cylinder_cloud->resize(point_count);
   return filtered_cylinder_cloud;
 }
-
 
 #endif  // CYLINDER_FITTING_H
