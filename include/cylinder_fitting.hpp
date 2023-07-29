@@ -58,7 +58,8 @@ inline pcl::PointCloud<PointT> project_points_perpendicular_to_axis(
   // Project the points
   pcl::PointCloud<PointT> cloud_out;
   for (const auto& p : cloud_in) {
-    Eigen::Vector3f q = P * p.getVector3fMap();
+    Eigen::Vector3f q = p.getVector3fMap();
+    q = q - axis.normalized() * q.dot(axis.normalized());
     cloud_out.push_back(PointT(q.x(), q.y(), q.z()));
   }
 
@@ -192,12 +193,7 @@ inline void estimate_cylinder_parameters(
   pcl::PCA<PointT> pca;
   pca.setInputCloud(cylinder_cloud);
   main_axis = pca.getEigenVectors().col(2);
-
-  auto projection =
-      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
-  typename pcl::PointCloud<PointT>::Ptr projection_cloud_ptr =
-      projection.makeShared();
-  radius_approx = compute_cylinder_radius<PointT>(projection_cloud_ptr,
+  radius_approx = compute_cylinder_radius<PointT>(cylinder_cloud,
                                                   main_axis, centroid3f);
 }
 
@@ -241,6 +237,18 @@ inline const Eigen::VectorXd find_cylinder_model(
   ceres::Solve(options, &problem, &summary);
 
   return x;
+}
+
+
+template <typename PointT>
+inline const Eigen::VectorXd find_cylinder_projection_ransac(typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+  double radius_approx;
+  Eigen::Vector3f centroid3f;
+  Eigen::Vector3f main_axis;
+  estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
+                               radius_approx);
+
+
 }
 
 /**
