@@ -51,6 +51,10 @@ int main() {
   Eigen::Vector3d center_ = x.segment<3>(3);
   double radius_ = x(6);
 
+  // auto collapsedPC = project_points_perpendicular_to_axis<pcl::PointXYZ>(*cylinder_cloud,axis_.cast<float>());
+  // viewer.addPointCloud<pcl::PointXYZ>(collapsedPC.makeShared(), "cloud");
+
+
   pcl::ModelCoefficients::Ptr cylinder_coefficients(new pcl::ModelCoefficients);
   // Compute the top point of the cylinder based on the desired height
 
