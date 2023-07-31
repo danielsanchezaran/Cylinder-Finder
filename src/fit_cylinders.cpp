@@ -21,9 +21,9 @@ void draw_origin(pcl::visualization::PCLVisualizer& viewer){
 int main() {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cylinder_cloud(
       new pcl::PointCloud<pcl::PointXYZ>);
-  Eigen::Vector3d axis(1, 0, 1);
+  Eigen::Vector3d axis(1, 0, 0.7);
   axis.normalize();
-  Eigen::Vector3d center(0, 3, 0);
+  Eigen::Vector3d center(4, 3, -2);
   double radius = 2;
   double height = 2;
   int n_points = 1000;
@@ -44,15 +44,15 @@ int main() {
   viewer.setWindowName("3D Viewer");  // Set a window name for the viewer
 
   // Visualize the point cloud
-  viewer.addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
+  // viewer.addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
 
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = x.segment<3>(0);
   Eigen::Vector3d center_ = x.segment<3>(3);
   double radius_ = x(6);
 
-  // auto collapsedPC = project_points_perpendicular_to_axis<pcl::PointXYZ>(*cylinder_cloud,axis_.cast<float>());
-  // viewer.addPointCloud<pcl::PointXYZ>(collapsedPC.makeShared(), "cloud");
+  auto collapsedPC = project_points_perpendicular_to_axis<pcl::PointXYZ>(*cylinder_cloud,axis_.cast<float>());
+  viewer.addPointCloud<pcl::PointXYZ>(collapsedPC.makeShared(), "cloud");
 
 
   pcl::ModelCoefficients::Ptr cylinder_coefficients(new pcl::ModelCoefficients);
@@ -86,6 +86,5 @@ int main() {
 
   viewer.spin();
 
-  std::cout << x.transpose() << std::endl;
   return 0;
 }

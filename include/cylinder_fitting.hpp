@@ -52,9 +52,6 @@ struct CylinderCostFunctor {
 template <typename PointT>
 inline pcl::PointCloud<PointT> project_points_perpendicular_to_axis(
     const pcl::PointCloud<PointT>& cloud_in, const Eigen::Vector3f& axis) {
-  // Compute the projection matrix
-  Eigen::Matrix3f P = Eigen::Matrix3f::Identity() - axis * axis.transpose();
-
   // Project the points
   pcl::PointCloud<PointT> cloud_out;
   for (const auto& p : cloud_in) {
