@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "cylinder_fitting.hpp"
+#include "ransac.hpp"
 
 void draw_origin(pcl::visualization::PCLVisualizer& viewer){
 // Create the coordinate frame manually
@@ -36,6 +37,10 @@ int main() {
   cylinder_cloud =
       filter_cylinder_inliers<pcl::PointXYZ>(cylinder_cloud, x, 0.05);
   adjust_cylinder_model_to_points<pcl::PointXYZ>(cylinder_cloud, x);
+
+  auto toEigen = pcl_to_eigen<pcl::PointXYZ>(cylinder_cloud);
+
+  std::cout << " TO EIGEN " << toEigen.col(0) <<"\n";
 
   std::cout << "Output after adjust" << x.transpose() << "\n";
 

@@ -1,8 +1,8 @@
-#ifndef CYLINDER_FITTING_H
-#define CYLINDER_FITTING_H
+#ifndef CYLINDER_FITTING_HPP
+#define CYLINDER_FITTING_HPP
 
 #include <ceres/ceres.h>
-#include <pcl-1.10/pcl/common/centroid.h>
+#include <pcl/common/centroid.h>
 #include <pcl/common/pca.h>
 #include <pcl/features/feature.h>
 #include <pcl/features/normal_3d.h>
@@ -11,6 +11,9 @@
 
 #include <Eigen/Core>
 #include <vector>
+
+#include "ransac.hpp"
+
 
 /**
  * CylinderCostFunctor: A functor used as a cost function in Ceres optimization
@@ -196,8 +199,6 @@ inline void estimate_cylinder_parameters(
   main_axis = pca.getEigenVectors().col(2);
   radius_approx =
       compute_cylinder_radius<PointT>(cylinder_cloud, main_axis, centroid3f);
-  auto projected_points =
-      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
 }
 
 /**
@@ -250,6 +251,8 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(
   Eigen::Vector3f main_axis;
   estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
                                        radius_approx);
+  auto projected_points =
+      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
 }
 
 /**
@@ -337,4 +340,4 @@ inline typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
   return filtered_cylinder_cloud;
 }
 
-#endif  // CYLINDER_FITTING_H
+#endif  // CYLINDER_FITTING_HPP
