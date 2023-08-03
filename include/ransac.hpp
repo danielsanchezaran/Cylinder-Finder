@@ -22,7 +22,7 @@ inline const Eigen::MatrixXd pcl_to_eigen(
 inline const Eigen::Vector3d circle_ransac(
     const Eigen::MatrixXd& data_points, int max_iterations,
     double threshold_distance, std::vector<int>& inlier_indices,
-    const double max_inlier_ratio = 0.95) {
+    const double acceptable_inlier_ratio = 0.95) {
   int num_points =
       data_points.cols();  // Assuming each column is a 2D data point
 
@@ -95,7 +95,7 @@ inline const Eigen::Vector3d circle_ransac(
       best_circle << center, radius;
       inlier_indices = inliers;
     }
-    if (inliers_count > num_points * max_inlier_ratio) break;
+    if (best_inliers_count > num_points * acceptable_inlier_ratio) break;
   }
 
   return best_circle;
