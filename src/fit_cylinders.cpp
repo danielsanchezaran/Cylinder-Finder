@@ -12,14 +12,18 @@ class TimeIT {
  private:
   std::chrono::time_point<std::chrono::steady_clock> t_start;
   std::string instance;
+
  public:
-  explicit TimeIT(std::string instance) : instance(instance){ t_start = std::chrono::steady_clock::now(); }
+  explicit TimeIT(std::string instance) : instance(instance) {
+    t_start = std::chrono::steady_clock::now();
+  }
 
   ~TimeIT() {
     std::chrono::time_point<std::chrono::steady_clock> t_end =
         std::chrono::steady_clock::now();
     std::chrono::duration<double> duration = t_end - t_start;
-    std::cout << "Elapsed time for " << instance <<": "<< duration.count() << " (s)\n";
+    std::cout << "Elapsed time for " << instance << ": " << duration.count()
+              << " (s)\n";
   }
 };
 
@@ -50,14 +54,18 @@ int main() {
   {
     TimeIT t("Find Cylinder Ransac");
     auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud);
+    std::cout << "Output " << x.transpose() << "\n\n";
   }
   {
     TimeIT t("Find Cylinder Ransac + Optimization");
-    auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud,true);
+    auto x =
+        find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud, true);
+    std::cout << "Output " << x.transpose() << "\n\n";
   }
   {
     TimeIT t(("Find Cylinder LSQ"));
     auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
+    std::cout << "Output " << x.transpose() << "\n\n";
   }
   auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
   std::cout << "Output " << x.transpose() << "\n";
