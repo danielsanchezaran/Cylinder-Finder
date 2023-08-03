@@ -1,5 +1,6 @@
 #ifndef RANSAC_HPP
 #define RANSAC_HPP
+#include <ceres/ceres.h>
 #include <pcl/point_cloud.h>
 
 #include <Eigen/Core>
@@ -7,6 +8,40 @@
 #include <vector>
 
 
+/**
+ * @brief Functor to calculate the residual for Ceres optimization.
+ *
+ * @param data_points A 2xN MatrixXd representing the data points.
+ * @param i The index of the data point being processed.
+ */
+struct CircleCostFunctor {
+  CircleCostFunctor(const Eigen::MatrixXd& data_points, int i)
+      : data_points(data_points), i(i) {}
+  template <typename T>
+  bool operator()(const T* const x, T* residual) const {
+    Eigen::Matrix<T, 2, 1> center(x[0], x[1]);
+    T radius = x[2];
+    // Compute the distance from the data point to the center
+    Eigen::Matrix<T, 2, 1> p(data_points.col(i).cast<T>());
+    Eigen::Matrix<T, 2, 1> v(p - center);
+    T r = v.norm();
+
+    // Compute the residual
+    // residual[0] = r * r - (radius * radius);
+    residual[0] = r - radius;
+
+    return true;
+  }
+  const Eigen::MatrixXd& data_points;
+  int i;
+};
+
+/**
+ * @brief Converts a PointCloud to Eigen MatrixXd.
+ *
+ * @param cloud The PointCloud to convert.
+ * @return Eigen::MatrixXd The converted 3xN MatrixXd.
+ */
 template <typename PointT>
 inline const Eigen::MatrixXd pcl_to_eigen(
     typename pcl::PointCloud<PointT>::Ptr& cloud) {
@@ -19,6 +54,19 @@ inline const Eigen::MatrixXd pcl_to_eigen(
   return out_cloud;
 }
 
+/**
+ * @brief Perform circle fitting using RANSAC algorithm.
+ *
+ * @param data_points A 2xN MatrixXd representing the data points.
+ * @param max_iterations The maximum number of RANSAC iterations.
+ * @param threshold_distance The inlier distance threshold for RANSAC.
+ * @param inlier_indices Output vector containing the indices of inlier points.
+ * @param acceptable_inlier_ratio The minimum inlier ratio to consider a
+ * successful fit.
+ * @return Eigen::Vector3d The estimated circle parameters (center_x, center_y,
+ * radius).
+ * @throws std::invalid_argument if there are less than 3 data points.
+ */
 inline const Eigen::Vector3d circle_ransac(
     const Eigen::MatrixXd& data_points, int max_iterations,
     double threshold_distance, std::vector<int>& inlier_indices,
@@ -101,5 +149,39 @@ inline const Eigen::Vector3d circle_ransac(
   return best_circle;
 }
 
+/**
+ * @brief Optimize the circle parameters using Ceres Solver.
+ *
+ * @param circle_params The initial estimate of circle parameters (center_x,
+ * center_y, radius).
+ * @param data_points A 2xN MatrixXd representing the data points.
+ * @return Eigen::Vector3d The refined circle parameters (center_x, center_y,
+ * radius).
+ */
+inline Eigen::Vector3d optimize_circle(const Eigen::Vector3d& circle_params,
+                                       const Eigen::MatrixXd& data_points) {
+  ceres::Problem problem;
+  Eigen::VectorXd x(3);
+
+  // Cx,Cy,r
+  x << circle_params.x(), circle_params.y(), circle_params.z();
+
+  // Add the cost function for each data point
+  for (int i = 0; i < data_points.cols(); ++i) {
+    ceres::CostFunction* cost_function =
+        new ceres::AutoDiffCostFunction<CircleCostFunctor, 1, 3>(
+            new CircleCostFunctor(data_points, i));
+    problem.AddResidualBlock(cost_function, nullptr, x.data());
+  }
+
+  // Set up the solver options
+  ceres::Solver::Options options;
+  options.minimizer_progress_to_stdout = false;
+
+  // Solve the problem
+  ceres::Solver::Summary summary;
+  ceres::Solve(options, &problem, &summary);
+  return x;
+}
 
 #endif  // RANSAC_HPP
