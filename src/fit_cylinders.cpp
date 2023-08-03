@@ -6,8 +6,8 @@
 #include "cylinder_fitting.hpp"
 #include "ransac.hpp"
 
-void draw_origin(pcl::visualization::PCLVisualizer& viewer){
-// Create the coordinate frame manually
+void draw_origin(pcl::visualization::PCLVisualizer& viewer) {
+  // Create the coordinate frame manually
   pcl::PointXYZ origin(0, 0, 0);
   pcl::PointXYZ x_axis(1, 0, 0);
   pcl::PointXYZ y_axis(0, 1, 0);
@@ -16,22 +16,24 @@ void draw_origin(pcl::visualization::PCLVisualizer& viewer){
   viewer.addLine(origin, x_axis, 1.0, 0.0, 0.0, "x_axis");
   viewer.addLine(origin, y_axis, 0.0, 1.0, 0.0, "y_axis");
   viewer.addLine(origin, z_axis, 0.0, 0.0, 1.0, "z_axis");
-
 }
 
 int main() {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cylinder_cloud(
       new pcl::PointCloud<pcl::PointXYZ>);
-  Eigen::Vector3d axis(1, 0, 0.7);
+  Eigen::Vector3d axis(1, 1, 1);
   axis.normalize();
-  Eigen::Vector3d center(4, 3, -2);
-  double radius = 2;
+  Eigen::Vector3d center(-3, 7, -2.5);
+  double radius = 3;
   double height = 2;
   int n_points = 1000;
   generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
                                           height, cylinder_cloud);
 
-  auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
+  auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud);
+
+
+  // auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
   std::cout << "Output " << x.transpose() << "\n";
   // TODO: Filter inliers before modifying
   cylinder_cloud =
@@ -40,24 +42,24 @@ int main() {
 
   auto toEigen = pcl_to_eigen<pcl::PointXYZ>(cylinder_cloud);
 
-  std::cout << " TO EIGEN " << toEigen.col(0) <<"\n";
-
   std::cout << "Output after adjust" << x.transpose() << "\n";
 
   // Create the PCLVisualizer
   pcl::visualization::PCLVisualizer viewer("3D Viewer");
   viewer.setWindowName("3D Viewer");  // Set a window name for the viewer
 
-  // Visualize the point cloud
-  // viewer.addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
+ 
 
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = x.segment<3>(0);
   Eigen::Vector3d center_ = x.segment<3>(3);
   double radius_ = x(6);
 
-  auto collapsedPC = project_points_perpendicular_to_axis<pcl::PointXYZ>(*cylinder_cloud,axis_.cast<float>());
-  viewer.addPointCloud<pcl::PointXYZ>(collapsedPC.makeShared(), "cloud");
+  auto collapsedPC = project_points_perpendicular_to_axis<pcl::PointXYZ>(
+      cylinder_cloud, axis_.cast<float>());
+  // Visualize the point cloud
+  viewer.addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
+  // viewer.addPointCloud<pcl::PointXYZ>(collapsedPC, "cloud");
 
 
   pcl::ModelCoefficients::Ptr cylinder_coefficients(new pcl::ModelCoefficients);

@@ -53,14 +53,17 @@ struct CylinderCostFunctor {
  * @return A new point cloud representing the projection result.
  */
 template <typename PointT>
-inline pcl::PointCloud<PointT> project_points_perpendicular_to_axis(
-    const pcl::PointCloud<PointT>& cloud_in, const Eigen::Vector3f& axis) {
+inline typename pcl::PointCloud<PointT>::Ptr
+project_points_perpendicular_to_axis(
+    const typename pcl::PointCloud<PointT>::Ptr& cloud_in,
+    const Eigen::Vector3f& axis) {
   // Project the points
-  pcl::PointCloud<PointT> cloud_out;
-  for (const auto& p : cloud_in) {
+
+  typename pcl::PointCloud<PointT>::Ptr cloud_out(new pcl::PointCloud<PointT>);
+  for (const auto& p : *cloud_in) {
     Eigen::Vector3f q = p.getVector3fMap();
     q = q - axis.normalized() * q.dot(axis.normalized());
-    cloud_out.push_back(PointT(q.x(), q.y(), q.z()));
+    cloud_out->push_back(PointT(q.x(), q.y(), q.z()));
   }
 
   return cloud_out;
@@ -249,10 +252,44 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
+
   estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
                                        radius_approx);
-  auto projected_points =
-      project_points_perpendicular_to_axis<PointT>(*cylinder_cloud, main_axis);
+
+  Eigen::MatrixXd projected_points_eigen =
+      pcl_to_eigen<PointT>(cylinder_cloud);
+
+  Eigen::Vector3d V;
+  if (std::abs(main_axis.y()) < 1e-9 && std::abs(main_axis.x()) < 1e-9) {
+    V << 0, main_axis.z(), 0;
+  } else {
+    V << -main_axis.y(), main_axis.x(), 0;
+  }
+
+  V.normalize();
+  Eigen::Vector3d U = V.cross(main_axis.normalized().cast<double>());
+  U.normalize();
+  Eigen::Matrix3d rotation_matrix;
+  rotation_matrix.col(0) = U;
+  rotation_matrix.col(1) = V;
+  rotation_matrix.col(2) = main_axis.normalized().cast<double>();
+
+  Eigen::MatrixXd points_rotated = rotation_matrix.transpose() * projected_points_eigen;
+  Eigen::MatrixXd points2D = points_rotated.block(0, 0, 2, points_rotated.cols());
+
+  // Use RANSAC to obtain an initial estimate of the circle parameters
+  std::vector<int> inlier_indices;
+  Eigen::Vector3d ransac_result =
+      circle_ransac(points2D, 1000, 0.2, inlier_indices);
+
+  // Convert the circle's center back to the global frame
+  Eigen::Vector3d center_in_global_frame(ransac_result.x(), ransac_result.y(),
+                                         0.);
+  center_in_global_frame = rotation_matrix * center_in_global_frame;
+
+  Eigen::VectorXd cylinder_parameters(7);
+  cylinder_parameters << main_axis.cast<double>(),center_in_global_frame,ransac_result.z();
+  return cylinder_parameters;
 }
 
 /**
