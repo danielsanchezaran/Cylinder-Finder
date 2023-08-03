@@ -19,7 +19,7 @@ class TimeIT {
     std::chrono::time_point<std::chrono::steady_clock> t_end =
         std::chrono::steady_clock::now();
     std::chrono::duration<double> duration = t_end - t_start;
-    std::cout << "Elapsed time for " << instance << duration.count() << "s\n";
+    std::cout << "Elapsed time for " << instance << duration.count() << " (s)\n";
   }
 };
 
