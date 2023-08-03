@@ -12,38 +12,9 @@
 #include <Eigen/Core>
 #include <vector>
 
+#include "cost_functors.hpp"
 #include "ransac.hpp"
 
-
-/**
- * CylinderCostFunctor: A functor used as a cost function in Ceres optimization
- * to compute the residual distance between a data point and a cylinder's
- * surface.
- * @param data_points A vector of Eigen 3D vectors representing the data points.
- * @param i Index of the data point in the vector.
- */
-struct CylinderCostFunctor {
-  CylinderCostFunctor(const std::vector<Eigen::Vector3d>& data_points, int i)
-      : data_points(data_points), i(i) {}
-  template <typename T>
-  bool operator()(const T* const x, T* residual) const {
-    Eigen::Matrix<T, 3, 1> axis(x[0], x[1], x[2]);
-    Eigen::Matrix<T, 3, 1> center(x[3], x[4], x[5]);
-    T radius = x[6];
-    // Compute the distance from the data point to the axis
-    Eigen::Matrix<T, 3, 1> p(data_points[i].cast<T>());
-    Eigen::Matrix<T, 3, 1> v(p - center);
-    T mag = v.dot(axis.normalized());
-    Eigen::Matrix<T, 3, 1> point_in_axis(center + mag * axis);
-    T d = (p - point_in_axis).norm();
-
-    // Compute the residual
-    residual[0] = d * d - (radius * radius);
-    return true;
-  }
-  const std::vector<Eigen::Vector3d>& data_points;
-  int i;
-};
 
 /**
  * project_points_perpendicular_to_axis: Projects a point cloud onto a plane
@@ -248,7 +219,8 @@ inline const Eigen::VectorXd find_cylinder_model(
 
 template <typename PointT>
 inline const Eigen::VectorXd find_cylinder_projection_ransac(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud, bool use_least_squares = false) {
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    bool use_least_squares = false) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
@@ -256,8 +228,7 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(
   estimate_cylinder_parameters<PointT>(cylinder_cloud, main_axis, centroid3f,
                                        radius_approx);
 
-  Eigen::MatrixXd projected_points_eigen =
-      pcl_to_eigen<PointT>(cylinder_cloud);
+  Eigen::MatrixXd projected_points_eigen = pcl_to_eigen<PointT>(cylinder_cloud);
 
   Eigen::Vector3d V;
   if (std::abs(main_axis.y()) < 1e-9 && std::abs(main_axis.x()) < 1e-9) {
@@ -274,22 +245,26 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(
   rotation_matrix.col(1) = V;
   rotation_matrix.col(2) = main_axis.normalized().cast<double>();
 
-  Eigen::MatrixXd points_rotated = rotation_matrix.transpose() * projected_points_eigen;
-  Eigen::MatrixXd points2D = points_rotated.block(0, 0, 2, points_rotated.cols());
+  Eigen::MatrixXd points_rotated =
+      rotation_matrix.transpose() * projected_points_eigen;
+  Eigen::MatrixXd points2D =
+      points_rotated.block(0, 0, 2, points_rotated.cols());
 
   // Use RANSAC to obtain an initial estimate of the circle parameters
   std::vector<int> inlier_indices;
   Eigen::Vector3d ransac_result =
       circle_ransac(points2D, 1000, 0.2, inlier_indices);
 
-  if(use_least_squares) ransac_result = optimize_circle(ransac_result,points2D);
+  if (use_least_squares)
+    ransac_result = optimize_circle(ransac_result, points2D);
   // Convert the circle's center back to the global frame
   Eigen::Vector3d center_in_global_frame(ransac_result.x(), ransac_result.y(),
                                          0.);
   center_in_global_frame = rotation_matrix * center_in_global_frame;
 
   Eigen::VectorXd cylinder_parameters(7);
-  cylinder_parameters << main_axis.cast<double>(),center_in_global_frame,ransac_result.z();
+  cylinder_parameters << main_axis.cast<double>(), center_in_global_frame,
+      ransac_result.z();
   return cylinder_parameters;
 }
 

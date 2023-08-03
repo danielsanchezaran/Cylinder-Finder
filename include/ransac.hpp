@@ -7,34 +7,7 @@
 #include <random>
 #include <vector>
 
-
-/**
- * @brief Functor to calculate the residual for Ceres optimization.
- *
- * @param data_points A 2xN MatrixXd representing the data points.
- * @param i The index of the data point being processed.
- */
-struct CircleCostFunctor {
-  CircleCostFunctor(const Eigen::MatrixXd& data_points, int i)
-      : data_points(data_points), i(i) {}
-  template <typename T>
-  bool operator()(const T* const x, T* residual) const {
-    Eigen::Matrix<T, 2, 1> center(x[0], x[1]);
-    T radius = x[2];
-    // Compute the distance from the data point to the center
-    Eigen::Matrix<T, 2, 1> p(data_points.col(i).cast<T>());
-    Eigen::Matrix<T, 2, 1> v(p - center);
-    T r = v.norm();
-
-    // Compute the residual
-    // residual[0] = r * r - (radius * radius);
-    residual[0] = r - radius;
-
-    return true;
-  }
-  const Eigen::MatrixXd& data_points;
-  int i;
-};
+#include "cost_functors.hpp"
 
 /**
  * @brief Converts a PointCloud to Eigen MatrixXd.
@@ -45,7 +18,6 @@ struct CircleCostFunctor {
 template <typename PointT>
 inline const Eigen::MatrixXd pcl_to_eigen(
     typename pcl::PointCloud<PointT>::Ptr& cloud) {
-
   Eigen::MatrixXd out_cloud(3, cloud->size());
   int col = 0;
 
