@@ -12,6 +12,7 @@ TEST(CircleRANSACTest, BasicTest) {
   const double center_y = -10.0;
   const double radius = 5.82;
   const int num_points = 100;
+  double noise = 0.1;
 
   Eigen::MatrixXd data_points(2, num_points);
   for (int i = 0; i < num_points; i++) {
@@ -23,26 +24,22 @@ TEST(CircleRANSACTest, BasicTest) {
     // Add some random noise to the points to simulate noisy data
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::normal_distribution<double> noise_distribution(0.0, 0.1);
+    std::normal_distribution<double> noise_distribution(-noise, noise);
     x += noise_distribution(generator);
     y += noise_distribution(generator);
 
     data_points.col(i) << x, y;
   }
 
-  // Modify the data points to be centered around (0, 0)
-  data_points.row(0).array() -= center_x;
-  data_points.row(1).array() -= center_y;
-
   std::vector<int> inlier_indices;
   Eigen::Vector3d result =
-      circle_ransac(data_points, 1000, 0.1, inlier_indices);
+      circle_ransac(data_points, 1000, noise * std::sqrt(2), inlier_indices);
 
-  // The correct center should be (0.0, 0.0), and the radius should be 2.0
+  // The correct center should be centerx, centery, and the radius should be 2.0
   // (approximately).
-  EXPECT_NEAR(result[0], 0.0, 0.1);
-  EXPECT_NEAR(result[1], 0.0, 0.1);
-  EXPECT_NEAR(result[2], radius, 0.1);
+  EXPECT_NEAR(result[0], center_x, noise * std::sqrt(2));
+  EXPECT_NEAR(result[1], center_y, noise * std::sqrt(2));
+  EXPECT_NEAR(result[2], radius, noise * std::sqrt(2));
 
   // Verify that the inliers correspond to the points that are close enough to
   // the circle.

@@ -55,28 +55,32 @@ inline const Eigen::Vector3d circle_ransac(
     double x3 = p3[0];
     double y3 = p3[1];
 
-    double D = 2.0 * (x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
-    if (std::abs(D) < 1e-9) continue;
-    double Ux =
-        ((x1 * x1 + y1 * y1) * (y2 - y3) + (x2 * x2 + y2 * y2) * (y3 - y1) +
-         (x3 * x3 + y3 * y3) * (y1 - y2)) /
-        D;
-    double Uy =
-        ((x1 * x1 + y1 * y1) * (x3 - x2) + (x2 * x2 + y2 * y2) * (x1 - x3) +
-         (x3 * x3 + y3 * y3) * (x2 - x1)) /
-        D;
+    double A = x1 * (y2 - y3) - y1 * (x2 - x3) + x2 * y3 - x3 * y2;
+    if (std::abs(A) < 1e-9) continue;
 
-    Eigen::Vector2d intersection(Ux, Uy);
+    double B = (x1 * x1 + y1 * y1) * (y3 - y2) +
+               (x2 * x2 + y2 * y2) * (y1 - y3) +
+               (x3 * x3 + y3 * y3) * (y2 - y1);
+    double C = (x1 * x1 + y1 * y1) * (x2 - x3) +
+               (x2 * x2 + y2 * y2) * (x3 - x1) +
+               (x3 * x3 + y3 * y3) * (x1 - x2);
 
+    double D = (x1 * x1 + y1 * y1) * (x3 * y2 - x2 * y3) +
+               (x2 * x2 + y2 * y2) * (x1 * y3 - x3 * y1) +
+               (x3 * x3 + y3 * y3) * (x2 * y1 - x1 * y2);
+
+    double xc = -B / (2 * A);
+    double yc = -C / (2 * A);
+    double radius = std::sqrt((B * B + C * C - 4 * A * D) / (4 * A * A));
     // Calculate the circle radius as the distance between the circumcenter and
     // any of the points
-    double radius = (p1 - intersection).norm();
 
     // Count inliers (data points close enough to the circle)
+    Eigen::Vector2d center(xc, yc);
     std::vector<int> inliers;
     for (int i = 0; i < num_points; i++) {
       Eigen::Vector2d p = data_points.col(i);
-      double distance = (p - intersection).norm();
+      double distance = (p - center).norm();
 
       if (std::abs(distance - radius) < threshold_distance) {
         inliers.push_back(i);
@@ -88,10 +92,10 @@ inline const Eigen::Vector3d circle_ransac(
     // Check if this circle model is better than the current best model
     if (inliers_count > best_inliers_count) {
       best_inliers_count = inliers_count;
-      best_circle << intersection, radius;
+      best_circle << center, radius;
       inlier_indices = inliers;
     }
-    if(inliers_count > num_points *  max_inlier_ratio) break;
+    if (inliers_count > num_points * max_inlier_ratio) break;
   }
 
   return best_circle;
