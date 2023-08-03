@@ -41,7 +41,7 @@ TEST(CircleRANSACTest, BasicTest) {
 
   std::vector<int> inlier_indices;
   Eigen::Vector3d result =
-      circle_ransac(data_points, 1000, noise * std::sqrt(2), inlier_indices);
+      circle_ransac(data_points, 1000, noise, inlier_indices);
 
   // The correct center should be centerx, centery, and the radius should be 2.0
   // (approximately).
@@ -81,7 +81,7 @@ TEST(OptimizeCircleTest, RefineCircleEstimate) {
   // Use RANSAC to obtain an initial estimate
   std::vector<int> inlier_indices;
   Eigen::Vector3d ransac_result =
-      circle_ransac(data_points, 1000, noise * std::sqrt(2), inlier_indices);
+      circle_ransac(data_points, 1000, noise, inlier_indices);
 
   // Use the optimize_circle function to refine the estimate
   Eigen::Vector3d optimized_result =

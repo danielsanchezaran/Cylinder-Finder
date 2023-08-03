@@ -1,10 +1,27 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
+#include <chrono>
 #include <iostream>
 #include <limits>
+#include <string>
 
 #include "cylinder_fitting.hpp"
 #include "ransac.hpp"
+
+class TimeIT {
+ private:
+  std::chrono::time_point<std::chrono::steady_clock> t_start;
+  std::string instance;
+ public:
+  explicit TimeIT(std::string instance) : instance(instance){ t_start = std::chrono::steady_clock::now(); }
+
+  ~TimeIT() {
+    std::chrono::time_point<std::chrono::steady_clock> t_end =
+        std::chrono::steady_clock::now();
+    std::chrono::duration<double> duration = t_end - t_start;
+    std::cout << "Elapsed time for " << instance << duration.count() << "s\n";
+  }
+};
 
 void draw_origin(pcl::visualization::PCLVisualizer& viewer) {
   // Create the coordinate frame manually
@@ -30,10 +47,19 @@ int main() {
   generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
                                           height, cylinder_cloud);
 
-  auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud);
-
-
-  // auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
+  {
+    TimeIT t("Find Cylinder Ransac");
+    auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud);
+  }
+  {
+    TimeIT t("Find Cylinder Ransac + Optimization");
+    auto x = find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_cloud,true);
+  }
+  {
+    TimeIT t(("Find Cylinder LSQ"));
+    auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
+  }
+  auto x = find_cylinder_model<pcl::PointXYZ>(cylinder_cloud);
   std::cout << "Output " << x.transpose() << "\n";
   // TODO: Filter inliers before modifying
   cylinder_cloud =
@@ -48,7 +74,6 @@ int main() {
   pcl::visualization::PCLVisualizer viewer("3D Viewer");
   viewer.setWindowName("3D Viewer");  // Set a window name for the viewer
 
- 
 
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = x.segment<3>(0);

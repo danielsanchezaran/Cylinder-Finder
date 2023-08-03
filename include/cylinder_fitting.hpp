@@ -248,7 +248,7 @@ inline const Eigen::VectorXd find_cylinder_model(
 
 template <typename PointT>
 inline const Eigen::VectorXd find_cylinder_projection_ransac(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud, bool use_least_squares = false) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
@@ -282,6 +282,7 @@ inline const Eigen::VectorXd find_cylinder_projection_ransac(
   Eigen::Vector3d ransac_result =
       circle_ransac(points2D, 1000, 0.2, inlier_indices);
 
+  if(use_least_squares) ransac_result = optimize_circle(ransac_result,points2D);
   // Convert the circle's center back to the global frame
   Eigen::Vector3d center_in_global_frame(ransac_result.x(), ransac_result.y(),
                                          0.);
