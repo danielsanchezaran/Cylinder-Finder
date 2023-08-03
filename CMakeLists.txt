@@ -17,7 +17,16 @@ include_directories(./include ./src)
 add_executable(line_app src/line_problem.cpp)
 add_executable(cylinder_app src/fit_cylinders.cpp)
 
+# Add the ransac_test target
+add_executable(ransac_test tests/ransac_test.cpp)
+
 # Link the targets with Ceres and PCL libraries
 target_link_libraries(line_app ${CERES_LIBRARIES})
 target_link_libraries(cylinder_app ${CERES_LIBRARIES} ${PCL_LIBRARIES})
 
+# Link the ransac_test with Google Test library
+target_link_libraries(ransac_test ${CERES_LIBRARIES} ${PCL_LIBRARIES} gtest gtest_main)
+
+# Add the test to CTest
+enable_testing()
+add_test(NAME RANSACTest COMMAND ransac_test)
