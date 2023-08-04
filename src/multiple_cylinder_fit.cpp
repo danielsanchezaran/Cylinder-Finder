@@ -49,7 +49,7 @@ int main() {
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cylinder_clouds;
   std::vector<std::future<Eigen::VectorXd>> future_cylinder_params;
   // Create new PointCloud instances and add their pointers to the vector
-  int n_point_clouds = 8;
+  int n_point_clouds = 20;
   for (int i = 0; i < n_point_clouds; ++i) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
         new pcl::PointCloud<pcl::PointXYZ>);
@@ -63,45 +63,45 @@ int main() {
   std::uniform_real_distribution<double> distribution_center(-10., 10.);
   std::uniform_int_distribution<int> distribution_points(100, 1000);
 
-
-  for (int i = 0; i < n_point_clouds; ++i) {
-    double axis1 = distribution_center(generator);
-    double axis2 = distribution_center(generator);
-    double axis3 = distribution_center(generator);
-
-    if (axis1 == 0.0 && axis2 == 0.0 && axis3 == 0.0) axis1 = 1.0;
-    Eigen::Vector3d axis(axis1, axis2, axis3);
-    axis.normalize();
-
-    double center_x = distribution_center(generator);
-    double center_y = distribution_center(generator);
-    double center_z = distribution_center(generator);
-    Eigen::Vector3d center(center_x, center_y, center_z);
-
-
-    double radius = std::abs(distribution_center(generator));
-    double height = distribution_ratio(generator) * radius;
-    int n_points = distribution_points(generator);
-
-    thread_pool.enqueue([=] {
-      generate_cylinder_points<pcl::PointXYZ>(
-          n_points, axis, center, radius, height, cylinder_clouds[i]);
-    });
-  }
   {
     TimeIT t("Threads");
+    for (int i = 0; i < n_point_clouds; ++i) {
+      double axis1 = distribution_center(generator);
+      double axis2 = distribution_center(generator);
+      double axis3 = distribution_center(generator);
+
+      if (axis1 == 0.0 && axis2 == 0.0 && axis3 == 0.0) axis1 = 1.0;
+      Eigen::Vector3d axis(axis1, axis2, axis3);
+      axis.normalize();
+
+      double center_x = distribution_center(generator);
+      double center_y = distribution_center(generator);
+      double center_z = distribution_center(generator);
+      Eigen::Vector3d center(center_x, center_y, center_z);
+
+
+      double radius = std::abs(distribution_center(generator));
+      double height = distribution_ratio(generator) * radius;
+      int n_points = distribution_points(generator);
+
+      thread_pool.enqueue([=] {
+        generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
+                                                height, cylinder_clouds[i]);
+      });
+    }
+
+    thread_pool.waitUntilDone();
+
+    for (int i = 0; i < n_point_clouds; ++i) {
+      // auto future_param =
+      future_cylinder_params.emplace_back(thread_pool.enqueue_result([=]() {
+        return find_cylinder_projection_ransac<pcl::PointXYZ>(
+            cylinder_clouds[i]);
+        // return find_cylinder_model<pcl::PointXYZ>(cylinder_clouds[i]);
+      }));
+    }
     thread_pool.waitUntilDone();
   }
-  for (int i = 0; i < n_point_clouds; ++i) {
-    // auto future_param =
-    future_cylinder_params.emplace_back(thread_pool.enqueue_result([=]() {
-    //   return find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_clouds[i], true);
-      return find_cylinder_model<pcl::PointXYZ>(cylinder_clouds[i]);
-      
-    }));
-  }
-
-
   // Create the PCLVisualizer
   pcl::visualization::PCLVisualizer viewer("3D Viewer");
   viewer.setWindowName("3D Viewer");  // Set a window name for the viewer
@@ -130,7 +130,7 @@ int main() {
     viewer.addCylinder(*cylinder_coefficients, "cylinder" + std::to_string(i));
 
     // Set the color of the cylinder (e.g., red color)
-    double red = 0.125 * (n_point_clouds - i);
+    double red = (1.0 / n_point_clouds) * (n_point_clouds - i);
     double green = (1.0 - (static_cast<double>(i + 1) / n_point_clouds)) * 0.5;
     double blue = 0.5;
 
