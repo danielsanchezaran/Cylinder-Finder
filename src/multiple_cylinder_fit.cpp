@@ -84,7 +84,7 @@ int main() {
     int n_points = distribution_points(generator);
 
     thread_pool.enqueue([=] {
-      generate_cylinder_points_copy<pcl::PointXYZ>(
+      generate_cylinder_points<pcl::PointXYZ>(
           n_points, axis, center, radius, height, cylinder_clouds[i]);
     });
   }
@@ -95,7 +95,9 @@ int main() {
   for (int i = 0; i < n_point_clouds; ++i) {
     // auto future_param =
     future_cylinder_params.emplace_back(thread_pool.enqueue_result([=]() {
-      return find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_clouds[i], true);
+    //   return find_cylinder_projection_ransac<pcl::PointXYZ>(cylinder_clouds[i], true);
+      return find_cylinder_model<pcl::PointXYZ>(cylinder_clouds[i]);
+      
     }));
   }
 

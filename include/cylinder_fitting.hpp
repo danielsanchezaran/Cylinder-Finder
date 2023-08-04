@@ -110,56 +110,6 @@ inline double compute_cylinder_radius(
  */
 template <typename PointT>
 inline void generate_cylinder_points(
-    int n, const Eigen::Vector3d& axis, const Eigen::Vector3d& center,
-    double radius, double height,
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
-  // Choose two orthogonal vectors perpendicular to the axis
-  Eigen::Vector3d u, v;
-  if (axis[0] != 0 || axis[1] != 0) {
-    u = Eigen::Vector3d(axis[1], -axis[0], 0).normalized();
-  } else {
-    u = Eigen::Vector3d(0, axis[2], -axis[1]).normalized();
-  }
-  v = axis.cross(u);
-
-  // Generate n points on the surface of the cylinder
-  cylinder_cloud->points.resize(n);
-  for (int i = 0; i < n; ++i) {
-    double theta = (static_cast<double>(i) / (double)n) * 2.0 * M_PI;
-    double x_noise =
-        (static_cast<double>(rand()) / RAND_MAX - 0.5) * 0.1 * radius;
-    double y_noise =
-        (static_cast<double>(rand()) / RAND_MAX - 0.5) * 0.1 * radius;
-    double z_noise =
-        (static_cast<double>(rand()) / RAND_MAX - 0.5) * 1.0 * height;
-
-    Eigen::Vector3d relative_position;
-    relative_position << std::cos(theta) * (radius + x_noise) * u +
-                             std::sin(theta) * (radius + y_noise) * v +
-                             z_noise * axis.normalized();
-    Eigen::Vector3d point = center + relative_position;
-
-    // Add the generated point to the output point cloud
-    PointT pcl_point;
-    pcl_point.x = point.x();
-    pcl_point.y = point.y();
-    pcl_point.z = point.z();
-    cylinder_cloud->points[i] = pcl_point;
-  }
-}
-
-/**
- * generate_cylinder_points: Generates points on the surface of a cylinder with
- * specified axis, center, radius, and height.
- * @param n The number of points to be generated.
- * @param axis The axis of the cylinder.
- * @param center The center point of the cylinder.
- * @param radius The radius of the cylinder.
- * @param height The height of the cylinder.
- * @param cylinder_cloud The output point cloud to store the generated points.
- */
-template <typename PointT>
-inline void generate_cylinder_points_copy(
     int n, const Eigen::Vector3d axis, const Eigen::Vector3d center,
     double radius, double height,
     typename pcl::PointCloud<PointT>::Ptr cylinder_cloud) {
@@ -234,7 +184,7 @@ inline void estimate_cylinder_parameters(
  */
 template <typename PointT>
 inline const Eigen::VectorXd find_cylinder_model(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud) {
+    typename pcl::PointCloud<PointT>::Ptr cylinder_cloud) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
