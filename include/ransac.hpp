@@ -36,7 +36,7 @@ inline const Eigen::MatrixXd pcl_to_eigen(
  * @param threshold_distance The inlier distance threshold for RANSAC.
  * @param inlier_indices Output vector containing the indices of inlier points.
  * @param acceptable_inlier_ratio The minimum inlier ratio to consider a
- * successful fit.
+ * successful fit and prematurely finish RANSAC search.
  * @return Eigen::Vector3d The estimated circle parameters (center_x, center_y,
  * radius).
  * @throws std::invalid_argument if there are less than 3 data points.
