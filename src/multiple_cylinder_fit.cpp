@@ -43,7 +43,7 @@ void draw_origin(pcl::visualization::PCLVisualizer& viewer) {
 
 
 int main() {
-  ThreadPool thread_pool(4);
+  ThreadPool thread_pool(10);
 
   // Define the vector to hold the PointCloud pointers
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cylinder_clouds;
@@ -59,8 +59,9 @@ int main() {
   std::random_device rd;
   std::mt19937 generator(rd());
 
+  std::uniform_real_distribution<double> distribution_radius(0.05, 15.);
   std::uniform_real_distribution<double> distribution_ratio(1.1, 1.8);
-  std::uniform_real_distribution<double> distribution_center(-10., 10.);
+  std::uniform_real_distribution<double> distribution_center(-30., 30.);
   std::uniform_int_distribution<int> distribution_points(100, 1000);
 
   {
@@ -80,7 +81,7 @@ int main() {
       Eigen::Vector3d center(center_x, center_y, center_z);
 
 
-      double radius = std::abs(distribution_center(generator));
+      double radius = distribution_radius(generator);
       double height = distribution_ratio(generator) * radius;
       int n_points = distribution_points(generator);
 
