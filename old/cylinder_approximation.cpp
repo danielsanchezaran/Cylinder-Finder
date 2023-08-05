@@ -56,7 +56,7 @@ Eigen::Vector4f computeCentroid(
 }
 
 template <typename PointT>
-std::vector<Eigen::Vector3d> getEigenCloud(
+std::vector<Eigen::Vector3d> get_eigen_cloud(
     typename pcl::PointCloud<PointT>::Ptr cloud) {
   std::vector<Eigen::Vector3d> cloud_eigen;
   for (const auto& point : cloud->points) {
@@ -161,7 +161,7 @@ int main() {
   // x << axis,center,radius;
   x << main_axis.cast<double>(), centroid3f.cast<double>(), radius_approx;
 
-  std::vector<Eigen::Vector3d> data_points = getEigenCloud<pcl::PointXYZ>(cylinder_cloud);
+  std::vector<Eigen::Vector3d> data_points = get_eigen_cloud<pcl::PointXYZ>(cylinder_cloud);
 
   std::cout << "Initial guess " << x.transpose() << "\n";
   // Add the cost function for each data point

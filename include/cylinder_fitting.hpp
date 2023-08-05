@@ -55,12 +55,12 @@ inline Eigen::Vector4f computeCentroid(
 }
 
 /**
- * getEigenCloud: Converts a PCL point cloud to a vector of Eigen 3D vectors.
+ * get_eigen_cloud: Converts a PCL point cloud to a vector of Eigen 3D vectors.
  * @param cloud Input PCL point cloud.
  * @return A vector of Eigen 3D vectors representing the point cloud.
  */
 template <typename PointT>
-inline std::vector<Eigen::Vector3d> getEigenCloud(
+inline std::vector<Eigen::Vector3d> get_eigen_cloud(
     typename pcl::PointCloud<PointT>::Ptr cloud) {
   std::vector<Eigen::Vector3d> cloud_eigen;
   for (const auto& point : cloud->points) {
@@ -196,7 +196,7 @@ inline const Eigen::VectorXd find_cylinder_model(
   x << main_axis.cast<double>(), centroid3f.cast<double>(), radius_approx;
 
   std::vector<Eigen::Vector3d> data_points =
-      getEigenCloud<PointT>(cylinder_cloud);
+      get_eigen_cloud<PointT>(cylinder_cloud);
 
   // Add the cost function for each data point
   for (int i = 0; i < data_points.size(); ++i) {
