@@ -1,6 +1,5 @@
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include <chrono>
 #include <future>
 #include <iostream>
 #include <limits>
@@ -9,37 +8,7 @@
 #include "cylinder_fitting.hpp"
 #include "ransac.hpp"
 #include "thread_pool.hpp"
-
-class TimeIT {
- private:
-  std::chrono::time_point<std::chrono::steady_clock> t_start;
-  std::string instance;
-
- public:
-  explicit TimeIT(std::string instance) : instance(instance) {
-    t_start = std::chrono::steady_clock::now();
-  }
-
-  ~TimeIT() {
-    std::chrono::time_point<std::chrono::steady_clock> t_end =
-        std::chrono::steady_clock::now();
-    std::chrono::duration<double> duration = t_end - t_start;
-    std::cout << "Elapsed time for " << instance << ": " << duration.count()
-              << " (s)\n";
-  }
-};
-
-void draw_origin(pcl::visualization::PCLVisualizer& viewer) {
-  // Create the coordinate frame manually
-  pcl::PointXYZ origin(0, 0, 0);
-  pcl::PointXYZ x_axis(1, 0, 0);
-  pcl::PointXYZ y_axis(0, 1, 0);
-  pcl::PointXYZ z_axis(0, 0, 1);
-
-  viewer.addLine(origin, x_axis, 1.0, 0.0, 0.0, "x_axis");
-  viewer.addLine(origin, y_axis, 0.0, 1.0, 0.0, "y_axis");
-  viewer.addLine(origin, z_axis, 0.0, 0.0, 1.0, "z_axis");
-}
+#include "utils.hpp"
 
 
 int main() {
@@ -79,7 +48,6 @@ int main() {
       double center_y = distribution_center(generator);
       double center_z = distribution_center(generator);
       Eigen::Vector3d center(center_x, center_y, center_z);
-
 
       double radius = distribution_radius(generator);
       double height = distribution_ratio(generator) * radius;
@@ -146,7 +114,6 @@ int main() {
         pcl::visualization::PCL_VISUALIZER_OPACITY, transparency,
         "cylinder" + std::to_string(i));
   }
-
 
   for (int i = 0; i < n_point_clouds; ++i) {
     std::string name("cloud" + std::to_string(i));

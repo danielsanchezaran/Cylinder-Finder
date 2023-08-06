@@ -7,37 +7,7 @@
 
 #include "cylinder_fitting.hpp"
 #include "ransac.hpp"
-
-class TimeIT {
- private:
-  std::chrono::time_point<std::chrono::steady_clock> t_start;
-  std::string instance;
-
- public:
-  explicit TimeIT(std::string instance) : instance(instance) {
-    t_start = std::chrono::steady_clock::now();
-  }
-
-  ~TimeIT() {
-    std::chrono::time_point<std::chrono::steady_clock> t_end =
-        std::chrono::steady_clock::now();
-    std::chrono::duration<double> duration = t_end - t_start;
-    std::cout << "Elapsed time for " << instance << ": " << duration.count()
-              << " (s)\n";
-  }
-};
-
-void draw_origin(pcl::visualization::PCLVisualizer& viewer) {
-  // Create the coordinate frame manually
-  pcl::PointXYZ origin(0, 0, 0);
-  pcl::PointXYZ x_axis(1, 0, 0);
-  pcl::PointXYZ y_axis(0, 1, 0);
-  pcl::PointXYZ z_axis(0, 0, 1);
-
-  viewer.addLine(origin, x_axis, 1.0, 0.0, 0.0, "x_axis");
-  viewer.addLine(origin, y_axis, 0.0, 1.0, 0.0, "y_axis");
-  viewer.addLine(origin, z_axis, 0.0, 0.0, 1.0, "z_axis");
-}
+#include "utils.hpp"
 
 int main() {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cylinder_cloud(
@@ -82,7 +52,6 @@ int main() {
   pcl::visualization::PCLVisualizer viewer("3D Viewer");
   viewer.setWindowName("3D Viewer");  // Set a window name for the viewer
 
-
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = x.segment<3>(0);
   Eigen::Vector3d center_ = x.segment<3>(3);
@@ -93,7 +62,6 @@ int main() {
   // Visualize the point cloud
   viewer.addPointCloud<pcl::PointXYZ>(cylinder_cloud, "cloud");
   // viewer.addPointCloud<pcl::PointXYZ>(collapsedPC, "cloud");
-
 
   pcl::ModelCoefficients::Ptr cylinder_coefficients(new pcl::ModelCoefficients);
   // Compute the top point of the cylinder based on the desired height

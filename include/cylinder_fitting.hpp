@@ -120,7 +120,6 @@ inline void generate_cylinder_points(int n, const Eigen::Vector3d axis,
   v = axis.cross(u);
 
   // Generate n points on the surface of the cylinder
-  cylinder_cloud->points.resize(n);
   for (int i = 0; i < n; ++i) {
     double theta = (static_cast<double>(i) / (double)n) * 2.0 * M_PI;
     double x_noise =
@@ -141,7 +140,7 @@ inline void generate_cylinder_points(int n, const Eigen::Vector3d axis,
     pcl_point.x = point.x();
     pcl_point.y = point.y();
     pcl_point.z = point.z();
-    cylinder_cloud->points[i] = pcl_point;
+    cylinder_cloud->push_back(pcl_point);
   }
 }
 
