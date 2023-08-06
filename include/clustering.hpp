@@ -1,10 +1,11 @@
+#include "types.hpp"
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/segmentation/extract_clusters.h>
 
 template <typename PointT>
-inline std::vector<typename pcl::PointCloud<PointT>::Ptr> euclidean_clustering(
-    const typename pcl::PointCloud<PointT>::Ptr cloud, double cluster_tolerance,
+inline std::vector<PointCloudPtr<PointT>> euclidean_clustering(
+    const PointCloudPtr<PointT> cloud, double cluster_tolerance,
     int min_cluster_size, int max_cluster_size) {
   std::vector<pcl::PointIndices> cluster_indices;
   typename pcl::search::KdTree<PointT>::Ptr tree(
@@ -19,9 +20,9 @@ inline std::vector<typename pcl::PointCloud<PointT>::Ptr> euclidean_clustering(
   ec.setInputCloud(cloud);
   ec.extract(cluster_indices);
 
-  std::vector<typename pcl::PointCloud<PointT>::Ptr> clusters;
+  std::vector<PointCloudPtr<PointT>> clusters;
   for (const auto& indices : cluster_indices) {
-    typename pcl::PointCloud<PointT>::Ptr cluster(
+    PointCloudPtr<PointT> cluster(
         new typename pcl::PointCloud<PointT>);
     for (const auto& index : indices.indices) {
       cluster->push_back((*cloud)[index]);

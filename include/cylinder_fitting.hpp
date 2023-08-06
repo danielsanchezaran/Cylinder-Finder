@@ -14,7 +14,7 @@
 
 #include "cost_functors.hpp"
 #include "ransac.hpp"
-
+#include "types.hpp"
 
 /**
  * project_points_perpendicular_to_axis: Projects a point cloud onto a plane
@@ -24,13 +24,11 @@
  * @return A new point cloud representing the projection result.
  */
 template <typename PointT>
-inline typename pcl::PointCloud<PointT>::Ptr
-project_points_perpendicular_to_axis(
-    const typename pcl::PointCloud<PointT>::Ptr& cloud_in,
-    const Eigen::Vector3f& axis) {
+inline PointCloudPtr<PointT> project_points_perpendicular_to_axis(
+    const PointCloudPtr<PointT>& cloud_in, const Eigen::Vector3f& axis) {
   // Project the points
 
-  typename pcl::PointCloud<PointT>::Ptr cloud_out(new pcl::PointCloud<PointT>);
+  PointCloudPtr<PointT> cloud_out(new pcl::PointCloud<PointT>);
   for (const auto& p : *cloud_in) {
     Eigen::Vector3f q = p.getVector3fMap();
     q = q - axis.normalized() * q.dot(axis.normalized());
@@ -47,8 +45,7 @@ project_points_perpendicular_to_axis(
  * @return A 4D vector representing the centroid (x, y, z, 1.0).
  */
 template <typename PointT>
-inline Eigen::Vector4f computeCentroid(
-    const typename pcl::PointCloud<PointT>::Ptr& cloud) {
+inline Eigen::Vector4f computeCentroid(const PointCloudPtr<PointT>& cloud) {
   Eigen::Vector4f centroid;
   pcl::compute3DCentroid(*cloud, centroid);
   return centroid;
@@ -61,7 +58,7 @@ inline Eigen::Vector4f computeCentroid(
  */
 template <typename PointT>
 inline std::vector<Eigen::Vector3d> get_eigen_cloud(
-    typename pcl::PointCloud<PointT>::Ptr cloud) {
+    PointCloudPtr<PointT> cloud) {
   std::vector<Eigen::Vector3d> cloud_eigen;
   for (const auto& point : cloud->points) {
     Eigen::Vector3f p = point.getVector3fMap();
@@ -79,9 +76,9 @@ inline std::vector<Eigen::Vector3d> get_eigen_cloud(
  * @return The computed cylinder radius.
  */
 template <typename PointT>
-inline double compute_cylinder_radius(
-    typename pcl::PointCloud<PointT>::Ptr cloud, const Eigen::Vector3f& axis,
-    const Eigen::Vector3f& origin) {
+inline double compute_cylinder_radius(PointCloudPtr<PointT> cloud,
+                                      const Eigen::Vector3f& axis,
+                                      const Eigen::Vector3f& origin) {
   double variance = 0.0;
   double mean_distance = 0.0;
 
@@ -109,10 +106,10 @@ inline double compute_cylinder_radius(
  * @param cylinder_cloud The output point cloud to store the generated points.
  */
 template <typename PointT>
-inline void generate_cylinder_points(
-    int n, const Eigen::Vector3d axis, const Eigen::Vector3d center,
-    double radius, double height,
-    typename pcl::PointCloud<PointT>::Ptr cylinder_cloud) {
+inline void generate_cylinder_points(int n, const Eigen::Vector3d axis,
+                                     const Eigen::Vector3d center,
+                                     double radius, double height,
+                                     PointCloudPtr<PointT> cylinder_cloud) {
   // Choose two orthogonal vectors perpendicular to the axis
   Eigen::Vector3d u, v;
   if (axis[0] != 0 || axis[1] != 0) {
@@ -160,10 +157,10 @@ inline void generate_cylinder_points(
    @param radius_approx The estimated radius of the cylinder.
 */
 template <typename PointT>
-inline void estimate_cylinder_parameters(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
-    Eigen::Vector3f& main_axis, Eigen::Vector3f& centroid3f,
-    double& radius_approx) {
+inline void estimate_cylinder_parameters(PointCloudPtr<PointT>& cylinder_cloud,
+                                         Eigen::Vector3f& main_axis,
+                                         Eigen::Vector3f& centroid3f,
+                                         double& radius_approx) {
   auto cylinder_centroid = computeCentroid<PointT>(cylinder_cloud);
   centroid3f << cylinder_centroid(0), cylinder_centroid(1),
       cylinder_centroid(2);
@@ -184,7 +181,7 @@ inline void estimate_cylinder_parameters(
  */
 template <typename PointT>
 inline const Eigen::VectorXd find_cylinder_model(
-    typename pcl::PointCloud<PointT>::Ptr cylinder_cloud) {
+    PointCloudPtr<PointT> cylinder_cloud) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
@@ -219,9 +216,8 @@ inline const Eigen::VectorXd find_cylinder_model(
 
 template <typename PointT>
 inline const Eigen::VectorXd find_cylinder_projection_ransac(
-    typename pcl::PointCloud<PointT>::Ptr cylinder_cloud,
-    bool use_least_squares = false, int max_iterations = 100,
-    const double acceptable_inlier_ratio = 0.95) {
+    PointCloudPtr<PointT> cylinder_cloud, bool use_least_squares = false,
+    int max_iterations = 100, const double acceptable_inlier_ratio = 0.95) {
   double radius_approx;
   Eigen::Vector3f centroid3f;
   Eigen::Vector3f main_axis;
@@ -293,7 +289,7 @@ inline double projection_of_point_in_axis(const Eigen::Vector3d& direction,
  */
 template <typename PointT>
 inline void adjust_cylinder_model_to_points(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+    PointCloudPtr<PointT>& cylinder_cloud,
     Eigen::VectorXd& cylinder_coefficients) {
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = cylinder_coefficients.segment<3>(0);
@@ -328,8 +324,8 @@ inline void adjust_cylinder_model_to_points(
  * @return A new point cloud containing the filtered inlier points.
  */
 template <typename PointT>
-inline typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
-    typename pcl::PointCloud<PointT>::Ptr& cylinder_cloud,
+inline PointCloudPtr<PointT> filter_cylinder_inliers(
+    PointCloudPtr<PointT>& cylinder_cloud,
     Eigen::VectorXd& cylinder_coefficients, double radius_percentage = 0.05) {
   // Extract the cylinder parameters from the x vector
   Eigen::Vector3d axis_ = cylinder_coefficients.segment<3>(0);
@@ -337,8 +333,7 @@ inline typename pcl::PointCloud<PointT>::Ptr filter_cylinder_inliers(
   Eigen::Vector3d center_ = cylinder_coefficients.segment<3>(3);
   double radius = cylinder_coefficients(6);
 
-  typename pcl::PointCloud<PointT>::Ptr filtered_cylinder_cloud(
-      new pcl::PointCloud<PointT>);
+  PointCloudPtr<PointT> filtered_cylinder_cloud(new pcl::PointCloud<PointT>);
 
   filtered_cylinder_cloud->points.resize(cylinder_cloud->points.size());
   int point_count = 0;

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "cost_functors.hpp"
+#include "types.hpp"
 
 /**
  * @brief Converts a PointCloud to Eigen MatrixXd.
@@ -17,7 +18,7 @@
  */
 template <typename PointT>
 inline const Eigen::MatrixXd pcl_to_eigen(
-    typename pcl::PointCloud<PointT>::Ptr& cloud) {
+    PointCloudPtr<PointT>& cloud) {
   Eigen::MatrixXd out_cloud(3, cloud->size());
   int col = 0;
 
