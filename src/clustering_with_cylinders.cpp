@@ -17,20 +17,22 @@ int main() {
   // Define the vector to hold the PointCloud pointers
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cylinder_clouds;
 
-  int n_point_clouds = 5;
+  int n_point_clouds = 4;
   for (int i = 0; i < n_point_clouds; ++i) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
         new pcl::PointCloud<pcl::PointXYZ>);
     cylinder_clouds.push_back(cloud);
   }
 
+  // unsigned int seed = 210;
   std::random_device rd;
   std::mt19937 generator(rd());
+  // std::mt19937 generator(seed);
 
   std::uniform_real_distribution<double> distribution_radius(0.05, 15.);
   std::uniform_real_distribution<double> distribution_ratio(1.1, 1.8);
   std::uniform_real_distribution<double> distribution_center(-30., 30.);
-  std::uniform_int_distribution<int> distribution_points(100, 1000);
+  std::uniform_int_distribution<int> distribution_points(50, 1000);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clusters;
   pcl::PointCloud<pcl::PointXYZ>::Ptr combined_clouds(
       new pcl::PointCloud<pcl::PointXYZ>);
@@ -52,7 +54,8 @@ int main() {
 
       double radius = distribution_radius(generator);
       double height = distribution_ratio(generator) * radius;
-      int n_points = distribution_points(generator);
+      // int n_points = distribution_points(generator);
+      int n_points = 1000;
 
       thread_pool.enqueue([=] {
         generate_cylinder_points<pcl::PointXYZ>(n_points, axis, center, radius,
@@ -64,13 +67,16 @@ int main() {
     for (int i = 0; i < n_point_clouds; ++i)
       *combined_clouds += *cylinder_clouds[i];
     // Set the clustering parameters
-    double cluster_tolerance = 4.5;
+    double cluster_tolerance = 1.5;
     int min_cluster_size = 50;
     int max_cluster_size = 1000;
 
     // Call the clustering function
-    clusters = euclidean_clustering<pcl::PointXYZ>(
-        combined_clouds, cluster_tolerance, min_cluster_size, max_cluster_size);
+    // clusters = euclidean_clustering<pcl::PointXYZ>(
+    //     combined_clouds, cluster_tolerance, min_cluster_size,
+    //     max_cluster_size);
+    clusters = region_growing_clustering<pcl::PointXYZ>(combined_clouds, 0.25,
+                                                        0.25, 50, 1500);
   }
 
   // Visualize the original point cloud
