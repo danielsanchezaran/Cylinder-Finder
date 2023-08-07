@@ -51,7 +51,8 @@ inline std::vector<PointCloudPtr<PointT>> region_growing_clustering(
 
   // Compute surface normals
   typename pcl::NormalEstimation<PointT, pcl::Normal> ne;
-  typename pcl::search::KdTree<PointT>::Ptr tree(new pcl::search::KdTree<PointT>);
+  typename pcl::search::KdTree<PointT>::Ptr tree(
+      new pcl::search::KdTree<PointT>);
   ne.setSearchMethod(tree);
   ne.setInputCloud(cloud);
   pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
